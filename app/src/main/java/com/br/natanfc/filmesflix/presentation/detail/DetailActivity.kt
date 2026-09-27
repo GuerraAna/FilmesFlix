@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
+import coil.load
 import com.br.natanfc.filmesflix.databinding.ActivityDetailBinding
 import com.br.natanfc.filmesflix.domain.model.Movie
 
@@ -19,7 +20,12 @@ class DetailActivity : AppCompatActivity() {
             finish()
             return
         }
-        binding.movieTitle.text = movie.titulo
+
+        val uiModel = DetailMapper.toUiModel(movie)
+        binding.moviePoster.load(uiModel.posterUrl)
+        binding.movieTitle.text = uiModel.title
+        binding.movieReleaseDate.text = uiModel.releaseDate
+        binding.movieDescription.text = uiModel.description
     }
 
     companion object {

@@ -6,8 +6,8 @@ import org.junit.Test
 class DateFormatterTest {
 
     @Test
-    fun `valid api date is formatted as dd_MM_yyyy`() {
-        assertEquals("26/04/2018", DateFormatter.format("26/04/2018"))
+    fun `iso api date is formatted as dd_MM_yyyy`() {
+        assertEquals("26/04/2018", DateFormatter.format("2018-04-26"))
     }
 
     @Test
@@ -22,6 +22,6 @@ class DateFormatterTest {
 
     @Test
     fun `unparseable date returns raw value`() {
-        assertEquals("2018-04-26", DateFormatter.format("2018-04-26"))
+        assertEquals("26/04/2018", DateFormatter.format("26/04/2018"))
     }
 }

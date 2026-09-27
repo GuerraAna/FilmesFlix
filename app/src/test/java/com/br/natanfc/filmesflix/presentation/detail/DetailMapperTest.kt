@@ -11,7 +11,7 @@ class DetailMapperTest {
         titulo = "Vingadores: Guerra infinita",
         imagem = "https://example.com/poster.png",
         descricao = "Os vingadores enfrentam Thanos.",
-        dataLancamento = "26/04/2018"
+        dataLancamento = "2018-04-26"
     )
 
     @Test

@@ -1,11 +1,14 @@
 package com.br.natanfc.filmesflix.data.remote
 
-import com.br.natanfc.filmesflix.domain.model.Movie
 import retrofit2.Call
 import retrofit2.http.GET
+import retrofit2.http.Path
 
 interface MovieApi {
 
-    @GET("natanfelipe/FilmesFlixJson/master/moviesList")
-    fun getAllMovies(): Call<List<Movie>>
+    @GET("v1/movies")
+    fun getAllMovies(): Call<List<MovieSummaryDto>>
+
+    @GET("v1/movies/{id}")
+    fun getMovieById(@Path("id") id: Int): Call<MovieDetailDto>
 }

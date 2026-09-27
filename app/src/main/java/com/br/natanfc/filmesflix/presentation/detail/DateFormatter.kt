@@ -6,7 +6,7 @@ import java.util.Locale
 object DateFormatter {
 
     const val DATE_UNAVAILABLE = "Data indisponível"
-    private const val API_PATTERN = "dd/MM/yyyy"
+    private const val API_PATTERN = "yyyy-MM-dd"
     private const val DISPLAY_PATTERN = "dd/MM/yyyy"
 
     fun format(apiDate: String?): String {

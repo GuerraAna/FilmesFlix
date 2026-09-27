@@ -1,0 +1,37 @@
+# Blueprint: FilmesFlix — FRONT apenas (GuerraAna/FilmesFlix)
+# App Android: Gradle 6.5 + AGP 4.1.1 (exige JVM 8-14 -> JDK 11) + Android SDK 30.
+# O app consome o BFF em http://10.0.2.2:8080/ (ver blueprint "acoplado" para subir o backend).
+initialize:
+  - run: |
+      set -e
+      # JDK 11 (Temurin portátil — não depende da distro do sandbox)
+      mkdir -p "$HOME/.jdks/jdk11"
+      curl -sL "https://api.adoptium.net/v3/binary/latest/11/ga/linux/x64/jdk/hotspot/normal/eclipse" \
+        | tar -xz -C "$HOME/.jdks/jdk11" --strip-components=1
+      # Android cmdline-tools + platform 30 + build-tools 30.0.3
+      mkdir -p "$HOME/android-sdk/cmdline-tools"
+      curl -sL "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip" -o /tmp/ct.zip
+      unzip -q /tmp/ct.zip -d /tmp/ct
+      mv /tmp/ct/cmdline-tools "$HOME/android-sdk/cmdline-tools/latest"
+      yes | "$HOME/.jdks/jdk11/bin/java" -version 2>/dev/null || true
+      yes | "$HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$HOME/android-sdk" \
+        "platforms;android-30" "build-tools;30.0.3" <<< "y"
+      echo "sdk.dir=$HOME/android-sdk" > local.properties
+maintenance:
+  - run: |
+      echo "sdk.dir=$HOME/android-sdk" > local.properties
+knowledge:
+  - name: build
+    contents: |
+      JAVA_HOME="$HOME/.jdks/jdk11" ./gradlew assembleDebug
+  - name: test
+    contents: |
+      JAVA_HOME="$HOME/.jdks/jdk11" ./gradlew testDebugUnitTest
+  - name: lint
+    contents: |
+      JAVA_HOME="$HOME/.jdks/jdk11" ./gradlew lintDebug
+  - name: startup
+    contents: |
+      App Android: instale num emulador com JAVA_HOME="$HOME/.jdks/jdk11" ./gradlew installDebug.
+      A BASE_URL é http://10.0.2.2:8080/ — exige o BFF no ar (repo FilmesFlix-Workspace,
+      services/filmes-api). Em aparelho físico, troque pelo IP da máquina na rede.

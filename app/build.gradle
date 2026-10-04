@@ -2,6 +2,11 @@ plugins {
     id 'com.android.application'
     id 'kotlin-android'
     id 'kotlin-parcelize'
+    id 'jacoco'
+}
+
+jacoco {
+    toolVersion = "0.8.7"
 }
 
 android {
@@ -33,6 +38,15 @@ android {
     }
 
     kotlinOptions.jvmTarget = '1.8'
+
+    testOptions {
+        unitTests.all {
+            jacoco {
+                includeNoLocationClasses = true
+                excludes = ['jdk.internal.*']
+            }
+        }
+    }
 }
 
 dependencies {
@@ -52,6 +66,54 @@ dependencies {
     implementation"io.coil-kt:coil:$coil_version"
     testImplementation 'junit:junit:4.13.2'
     testImplementation 'org.yaml:snakeyaml:2.2'
+    testImplementation 'androidx.arch.core:core-testing:2.1.0'
     androidTestImplementation 'androidx.test.ext:junit:1.1.2'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.3.0'
+}
+
+def coverageExcludes = [
+        '**/R.class', '**/R$*.class', '**/BuildConfig.*', '**/Manifest*.*',
+        'android/**/*.*', '**/databinding/**',
+        '**/*Activity*', '**/*Adapter*', '**/*ViewHolder*',
+        '**/MovieApi*', '**/MovieApiClient*', '**/MovieRepositoryImpl*'
+]
+
+task jacocoTestReport(type: JacocoReport, dependsOn: 'testDebugUnitTest') {
+    reports {
+        xml.enabled true
+        html.enabled true
+    }
+    sourceDirectories.from = files('src/main/java')
+    classDirectories.from = files(
+            fileTree(dir: "$buildDir/tmp/kotlin-classes/debug", excludes: coverageExcludes),
+            fileTree(dir: "$buildDir/intermediates/javac/debug/classes", excludes: coverageExcludes)
+    )
+    executionData.from = files("$buildDir/jacoco/testDebugUnitTest.exec")
+}
+
+task jacocoTestCoverageVerification(type: JacocoCoverageVerification, dependsOn: 'testDebugUnitTest') {
+    sourceDirectories.from = files('src/main/java')
+    classDirectories.from = files(
+            fileTree(dir: "$buildDir/tmp/kotlin-classes/debug", excludes: coverageExcludes),
+            fileTree(dir: "$buildDir/intermediates/javac/debug/classes", excludes: coverageExcludes)
+    )
+    executionData.from = files("$buildDir/jacoco/testDebugUnitTest.exec")
+    violationRules {
+        rule {
+            limit {
+                counter = 'LINE'
+                value = 'COVEREDRATIO'
+                minimum = 0.50
+            }
+        }
+        rule {
+            element = 'PACKAGE'
+            includes = ['com.br.natanfc.filmesflix.domain.*']
+            limit {
+                counter = 'LINE'
+                value = 'COVEREDRATIO'
+                minimum = 0.80
+            }
+        }
+    }
 }

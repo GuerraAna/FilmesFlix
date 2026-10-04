@@ -51,6 +51,7 @@ dependencies {
     //Coil https://github.com/coil-kt/coil
     implementation"io.coil-kt:coil:$coil_version"
     testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.yaml:snakeyaml:2.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.2'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.3.0'
 }

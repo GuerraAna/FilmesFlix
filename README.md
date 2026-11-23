@@ -21,3 +21,18 @@ Este projeto consiste em exibir uma lista de filmes, oriundas de uma API.
 **Desafios para os alunos:**
 
 Como devem ter observado, os filmes possuem mais informações que deixariam o app ainda melhor. Que tal criarem uma tela de detalhes de cada filme com as informações vindas da requisição? 
+
+## Pré-requisitos
+
+- **JDK 11** (Gradle 6.5)
+- Android SDK
+
+## Como rodar
+
+```bash
+echo "sdk.dir=$HOME/Library/Android/sdk" > local.properties   # macOS
+./gradlew assembleDebug
+./gradlew testDebugUnitTest   # testes
+```
+
+> Este repositório também é usado como submódulo do [FilmesFlix-Workspace](https://github.com/GuerraAna/FilmesFlix-Workspace).

@@ -1,27 +1,33 @@
 package com.br.natanfc.filmesflix.data.repository
 
+import com.br.natanfc.filmesflix.data.local.MovieDao
 import com.br.natanfc.filmesflix.data.mapper.toDomain
+import com.br.natanfc.filmesflix.data.mapper.toEntity
 import com.br.natanfc.filmesflix.data.remote.MovieApi
 import com.br.natanfc.filmesflix.domain.model.Movie
 import com.br.natanfc.filmesflix.domain.repository.MovieRepository
-import java.io.IOException
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class MovieRepositoryImpl(private val movieApi: MovieApi) : MovieRepository {
+@Singleton
+class MovieRepositoryImpl @Inject constructor(
+    private val movieApi: MovieApi,
+    private val movieDao: MovieDao
+) : MovieRepository {
 
-    override fun getAllMovies(): List<Movie> {
-        val response = movieApi.getAllMovies().execute()
-        if (response.isSuccessful) {
-            return response.body().orEmpty().map { it.toDomain() }
-        }
-        throw IOException("Movies request failed with code ${response.code()}")
+    override fun observeMovies(): Flow<List<Movie>> =
+        movieDao.observeMovies().map { entities -> entities.map { it.toDomain() } }
+
+    override fun observeMovie(id: Int): Flow<Movie?> =
+        movieDao.observeMovie(id).map { it?.toDomain() }
+
+    override suspend fun refreshMovies() {
+        movieDao.upsertSummaries(movieApi.getAllMovies().map { it.toEntity() })
     }
 
-    override fun getMovie(id: Int): Movie {
-        val response = movieApi.getMovieById(id).execute()
-        if (response.isSuccessful) {
-            return response.body()?.toDomain()
-                ?: throw IOException("Movie $id returned empty body")
-        }
-        throw IOException("Movie request failed with code ${response.code()}")
+    override suspend fun refreshMovie(id: Int) {
+        movieDao.upsert(movieApi.getMovieById(id).toEntity())
     }
 }

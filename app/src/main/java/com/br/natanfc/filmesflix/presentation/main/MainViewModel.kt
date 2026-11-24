@@ -1,35 +1,47 @@
 package com.br.natanfc.filmesflix.presentation.main
 
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.br.natanfc.filmesflix.domain.model.Movie
-import com.br.natanfc.filmesflix.domain.usecase.GetAllMoviesUseCase
+import com.br.natanfc.filmesflix.domain.usecase.ObserveMoviesUseCase
+import com.br.natanfc.filmesflix.domain.usecase.RefreshMoviesUseCase
 import com.br.natanfc.filmesflix.presentation.UiState
-import java.util.concurrent.Executors
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class MainViewModel(
-    private val getAllMovies: GetAllMoviesUseCase
+@HiltViewModel
+class MainViewModel @Inject constructor(
+    private val observeMovies: ObserveMoviesUseCase,
+    private val refreshMovies: RefreshMoviesUseCase
 ) : ViewModel() {
 
-    private val executor = Executors.newSingleThreadExecutor()
+    private val _state = MutableStateFlow<UiState<List<Movie>>>(UiState.Loading)
+    val state: StateFlow<UiState<List<Movie>>> = _state.asStateFlow()
 
-    private val _movies = MutableLiveData<UiState<List<Movie>>>()
-    val movies: LiveData<UiState<List<Movie>>> = _movies
-
-    fun loadMovies() {
-        _movies.value = UiState.Loading
-        executor.execute {
-            try {
-                _movies.postValue(UiState.Success(getAllMovies.execute()))
-            } catch (e: Exception) {
-                _movies.postValue(UiState.Error(e.message ?: "Erro ao carregar filmes"))
+    init {
+        viewModelScope.launch {
+            observeMovies().collect { movies ->
+                if (movies.isNotEmpty()) {
+                    _state.update { UiState.Success(movies) }
+                }
             }
         }
+        refresh()
     }
 
-    override fun onCleared() {
-        executor.shutdown()
-        super.onCleared()
+    fun refresh() {
+        viewModelScope.launch {
+            if (_state.value !is UiState.Success) _state.value = UiState.Loading
+            runCatching { refreshMovies() }.onFailure { error ->
+                if (_state.value !is UiState.Success) {
+                    _state.value = UiState.Error(error.message ?: "Erro ao carregar filmes")
+                }
+            }
+        }
     }
 }

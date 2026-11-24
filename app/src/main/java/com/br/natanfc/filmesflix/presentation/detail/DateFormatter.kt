@@ -1,24 +1,19 @@
 package com.br.natanfc.filmesflix.presentation.detail
 
-import java.text.SimpleDateFormat
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 object DateFormatter {
 
     const val DATE_UNAVAILABLE = "Data indisponível"
-    private const val API_PATTERN = "yyyy-MM-dd"
-    private const val DISPLAY_PATTERN = "dd/MM/yyyy"
+    private val apiFormat = DateTimeFormatter.ISO_LOCAL_DATE
+    private val displayFormat = DateTimeFormatter.ofPattern("dd/MM/yyyy", Locale("pt", "BR"))
 
     fun format(apiDate: String?): String {
         if (apiDate.isNullOrBlank()) return DATE_UNAVAILABLE
-        val parsed = runCatching {
-            SimpleDateFormat(API_PATTERN, Locale("pt", "BR")).apply { isLenient = false }
-                .parse(apiDate)
-        }.getOrNull()
-        return if (parsed != null) {
-            SimpleDateFormat(DISPLAY_PATTERN, Locale("pt", "BR")).format(parsed)
-        } else {
-            apiDate
-        }
+        return runCatching {
+            LocalDate.parse(apiDate, apiFormat).format(displayFormat)
+        }.getOrDefault(apiDate)
     }
 }

@@ -8,10 +8,10 @@ class DetailMapperTest {
 
     private val movie = Movie(
         id = 1,
-        titulo = "Vingadores: Guerra infinita",
-        imagem = "https://example.com/poster.png",
-        descricao = "Os vingadores enfrentam Thanos.",
-        dataLancamento = "2018-04-26"
+        title = "Vingadores: Guerra infinita",
+        posterUrl = "https://example.com/poster.png",
+        overview = "Os vingadores enfrentam Thanos.",
+        releaseDate = "2018-04-26"
     )
 
     @Test
@@ -26,21 +26,21 @@ class DetailMapperTest {
 
     @Test
     fun `null description falls back to default text`() {
-        val uiModel = DetailMapper.toUiModel(movie.copy(descricao = null))
+        val uiModel = DetailMapper.toUiModel(movie.copy(overview = null))
 
         assertEquals(DetailMapper.DEFAULT_DESCRIPTION, uiModel.description)
     }
 
     @Test
     fun `blank description falls back to default text`() {
-        val uiModel = DetailMapper.toUiModel(movie.copy(descricao = "  "))
+        val uiModel = DetailMapper.toUiModel(movie.copy(overview = "  "))
 
         assertEquals(DetailMapper.DEFAULT_DESCRIPTION, uiModel.description)
     }
 
     @Test
     fun `null release date falls back to unavailable text`() {
-        val uiModel = DetailMapper.toUiModel(movie.copy(dataLancamento = null))
+        val uiModel = DetailMapper.toUiModel(movie.copy(releaseDate = null))
 
         assertEquals(DateFormatter.DATE_UNAVAILABLE, uiModel.releaseDate)
     }

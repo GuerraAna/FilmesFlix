@@ -1,61 +1,79 @@
 package com.br.natanfc.filmesflix.presentation.main
 
-import androidx.arch.core.executor.testing.InstantTaskExecutorRule
+import app.cash.turbine.test
+import com.br.natanfc.filmesflix.FakeMovieRepository
+import com.br.natanfc.filmesflix.MainDispatcherRule
 import com.br.natanfc.filmesflix.domain.model.Movie
 import com.br.natanfc.filmesflix.domain.repository.MovieRepository
-import com.br.natanfc.filmesflix.domain.usecase.GetAllMoviesUseCase
+import com.br.natanfc.filmesflix.domain.usecase.ObserveMoviesUseCase
+import com.br.natanfc.filmesflix.domain.usecase.RefreshMoviesUseCase
 import com.br.natanfc.filmesflix.presentation.UiState
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.TimeUnit
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class MainViewModelTest {
 
     @get:Rule
-    val instantTaskExecutorRule = InstantTaskExecutorRule()
+    val mainDispatcherRule = MainDispatcherRule()
 
     private val movie = Movie(1, "Interstellar", "poster", "descricao", "2014-11-06")
 
-    private fun viewModel(repository: MovieRepository) = MainViewModel(GetAllMoviesUseCase(repository))
+    private fun viewModel(repository: MovieRepository) = MainViewModel(
+        ObserveMoviesUseCase(repository),
+        RefreshMoviesUseCase(repository)
+    )
 
-    private fun observeUntilTerminal(viewModel: MainViewModel): List<UiState<List<Movie>>> {
-        val latch = CountDownLatch(1)
-        val states = mutableListOf<UiState<List<Movie>>>()
-        viewModel.movies.observeForever {
-            states.add(it)
-            if (it !is UiState.Loading) latch.countDown()
+    @Test
+    fun `state emits Loading then Success when movies arrive`() =
+        runTest(mainDispatcherRule.dispatcher) {
+            val sut = viewModel(FakeMovieRepository(moviesFlow = flowOf(listOf(movie))))
+
+            sut.state.test {
+                assertTrue(awaitItem() is UiState.Loading)
+                advanceUntilIdle()
+                assertEquals(listOf(movie), (awaitItem() as UiState.Success).data)
+                cancelAndIgnoreRemainingEvents()
+            }
         }
-        viewModel.loadMovies()
-        assertTrue("Timed out waiting for terminal UiState", latch.await(5, TimeUnit.SECONDS))
-        return states
-    }
 
     @Test
-    fun `loadMovies emits Loading then Success`() {
-        val sut = viewModel(object : MovieRepository {
-            override fun getAllMovies() = listOf(movie)
-            override fun getMovie(id: Int) = movie
-        })
+    fun `state emits Loading then Error when refresh fails with empty cache`() =
+        runTest(mainDispatcherRule.dispatcher) {
+            val sut = viewModel(
+                FakeMovieRepository(refreshMoviesError = RuntimeException("no network"))
+            )
 
-        val states = observeUntilTerminal(sut)
-
-        assertTrue(states.first() is UiState.Loading)
-        assertEquals(listOf(movie), (states.last() as UiState.Success).data)
-    }
+            sut.state.test {
+                assertTrue(awaitItem() is UiState.Loading)
+                advanceUntilIdle()
+                assertEquals("no network", (awaitItem() as UiState.Error).message)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
 
     @Test
-    fun `loadMovies emits Loading then Error on failure`() {
-        val sut = viewModel(object : MovieRepository {
-            override fun getAllMovies(): List<Movie> = throw RuntimeException("no network")
-            override fun getMovie(id: Int) = movie
-        })
+    fun `state stays Success when refresh fails but cache has data`() =
+        runTest(mainDispatcherRule.dispatcher) {
+            val sut = viewModel(
+                FakeMovieRepository(
+                    moviesFlow = flowOf(listOf(movie)),
+                    refreshMoviesError = RuntimeException("no network")
+                )
+            )
 
-        val states = observeUntilTerminal(sut)
-
-        assertTrue(states.first() is UiState.Loading)
-        assertEquals("no network", (states.last() as UiState.Error).message)
-    }
+            sut.state.test {
+                assertTrue(awaitItem() is UiState.Loading)
+                advanceUntilIdle()
+                assertEquals(listOf(movie), (awaitItem() as UiState.Success).data)
+                expectNoEvents()
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
 }

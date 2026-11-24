@@ -1,7 +1,13 @@
 package com.br.natanfc.filmesflix.data.remote
 
-import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.encodeToJsonElement
+import kotlinx.serialization.json.jsonObject
 import org.junit.Assume.assumeTrue
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -21,7 +27,7 @@ import java.time.LocalDate
  */
 class ContractTest {
 
-    private val gson = Gson()
+    private val json = Json { encodeDefaults = true }
     private val contractFile = File("../../../contracts/openapi.yaml")
 
     @Suppress("UNCHECKED_CAST")
@@ -83,8 +89,20 @@ class ContractTest {
         }
     }
 
-    private fun serialize(dto: Any): Map<String, Any?> =
-        gson.fromJson(gson.toJson(dto), object : TypeToken<Map<String, Any?>>() {}.type)
+    private fun JsonElement.toPlain(): Any? = when (this) {
+        JsonNull -> null
+        is JsonPrimitive -> if (isString) content
+            else content.toIntOrNull() ?: content.toLongOrNull()
+                ?: content.toDoubleOrNull() ?: content.toBooleanStrictOrNull() ?: content
+        is JsonArray -> map { it.toPlain() }
+        is JsonObject -> mapValues { (_, value) -> value.toPlain() }
+    }
+
+    private fun serialize(dto: MovieSummaryDto): Map<String, Any?> =
+        json.encodeToJsonElement(dto).jsonObject.toPlain() as Map<String, Any?>
+
+    private fun serialize(dto: MovieDetailDto): Map<String, Any?> =
+        json.encodeToJsonElement(dto).jsonObject.toPlain() as Map<String, Any?>
 
     @Test
     fun `MovieSummaryDto matches MovieSummary schema`() {
@@ -106,14 +124,14 @@ class ContractTest {
     @Test
     fun `BFF payload deserializes into app DTOs`() {
         val contract = loadContract()
-        // Simulates a wire payload as declared by the contract, then feeds it into Gson.
+        // Simulates a wire payload as declared by the contract, then feeds it into the DTOs.
         val summaryJson = """{"id":7,"title":"Dune","posterUrl":"https://image/t/p.jpg"}"""
-        val summary = gson.fromJson(summaryJson, MovieSummaryDto::class.java)
+        val summary = json.decodeFromString<MovieSummaryDto>(summaryJson)
         assertMatchesSchema(contract, serialize(summary), "MovieSummary")
         assertEquals("Dune", summary.title)
 
         val detailJson = """{"id":7,"title":"Dune","posterUrl":"https://image/t/p.jpg","overview":"Epic","releaseDate":"2021-10-22"}"""
-        val detail = gson.fromJson(detailJson, MovieDetailDto::class.java)
+        val detail = json.decodeFromString<MovieDetailDto>(detailJson)
         assertMatchesSchema(contract, serialize(detail), "MovieDetail")
         assertEquals("2021-10-22", detail.releaseDate)
     }

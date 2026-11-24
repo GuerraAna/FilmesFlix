@@ -3,6 +3,10 @@
 Android app de catálogo de filmes consumindo um BFF próprio. Começou como exercício de
 MVVM/Clean Architecture e foi modernizado para a stack atual de mercado.
 
+| Lista | Detalhe |
+|---|---|
+| <img src="docs/screenshots/movie_list.png" width="300" /> | <img src="docs/screenshots/movie_detail.png" width="300" /> |
+
 ## Stack
 
 - **UI**: Jetpack Compose (Material 3), Navigation Compose, `LazyVerticalGrid`
